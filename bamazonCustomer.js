@@ -44,7 +44,7 @@ function viewProducts(){
 
 
 	for(var i = 0; i<res.length;i++){
-		console.log("ID: " + res[i].ItemID + " | " + "Product: " + res[i].ProductName + " | " + "Department: " + res[i].DepartmentName + " | " + "Price: " + res[i].Price + " | " + "QTY: " + res[i].StockQuantity);
+		console.log("ID: " + res[i].Item_ID + " | " + "Product: " + res[i].Product_Name + " | " + "Department: " + res[i].Department_Name + " | " + "Price: " + res[i].Price + " | " + "QTY: " + res[i].Stock_Quantity);
 		console.log('-----------------------------------------------------------------------------------------')
 
 	}
@@ -80,7 +80,7 @@ function addToInventory(){
 
 		//pushes each item into an itemArray
 		for(var i=0; i<res.length; i++){
-			itemArray.push(res[i].ProductName);
+			itemArray.push(res[i].Product_Name);
 		}
 
 		inquirer.prompt([{
@@ -101,12 +101,12 @@ function addToInventory(){
 }]).then(function(ans) {
 	var currentQTY;
 	for(var i=0; i<res.length; i++){
-		currentQty = res[i].StockQuantity;
+		currentQty = res[i].Stock_Quantity;
 	}
 	}
 	connection.query('UPDATE Products Set ? WHERE ?', [
-		{StockQuantity: currentQty + parseInt(ans.qty)},
-		{ProductName: ans.Product}
+		{Stock_Quantity: currentQty + parseInt(ans.qty)},
+		{product_name: ans.Product}
 		], function(err, res){
 			if(err) throw err;
 			console.log('The quantity was updated.');
