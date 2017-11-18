@@ -1,167 +1,120 @@
-// require mysql and inquirer
-
+//require mysql and inquirer
 var mysql = require('mysql');
 var inquirer = require('inquirer');
 
-//create connection to db
 
+//create connection to db
 var connection = mysql.createConnection({
-	host: "localhost",
-	port: 3000,
-	user: root,
-	password: root,
-	database: "Bamazon"
+  host: "localhost",
+  port: 8889,
+  user: "root",
+  password: "root",
+  database: "bamazondb"
 })
 
+connection.connect();
+ 
 function start(){
-		inquirer.prompt([{
-			type: "list",
-			name: "doThing",
-			message: "What would you like to do?",
-			choices: ["View Products for Sale", "View Low Inventory", "Add to Inventory", "Add New Product", "End Session"]
-		}]).then(function(ans){
-			switch(ans.dothing){
-				case "View Products for Sale": viewProducts();
-				break;
-				case "View Low Inventory": viewLowInventory();
-				break;
-				case "Add to Inventory": addToInventory();
-				break;
-				case "Add New Product": addNewProduct();
-				break;
-				case "End Session": console.log('Bye');
-			}
-		});
+
+//prints the items for sale and their details
+connection.query('SELECT * FROM Products', 
+  function(err, res){
+  if(err) throw err;
+ 
+  console.log('Welcome to BAMazon')
+  console.log('----------------------------------------------------------------------------------------------------')
+ 
+  for(var i = 0; i < res.length; i++){
+    console.log("ID: " + res[i].ItemID + " | " + "Product: " + res[i].ProductName + " | " + "Department: " + res[i].DepartmentName + " | " + "Price: " + res[i].Price + " | " + "QTY: " + res[i].StockQuantity);
+    console.log('--------------------------------------------------------------------------------------------------')
+  }
+ 
+  console.log(' ');
+  inquirer.prompt([
+    {
+      type: "input",
+      name: "id",
+      message: "What is the ID of the product you would like to purchase?",
+      validate: function(value){
+        if(isNaN(value) == false && parseInt(value) <= res.length && parseInt(value) > 0){
+          return true;
+        } else{
+          return false;
+        }
+      }
+    },
+    {
+      type: "input",
+      name: "qty",
+      message: "How much would you like to purchase?",
+      validate: function(value){
+        if(isNaN(value)){
+          return false;
+        } else{
+          return true;
+        }
+      }
+    }
+    ]).then(function(ans){
+      var whatToBuy = (ans.id)-1;
+      var howMuchToBuy = parseInt(ans.qty);
+      var grandTotal = parseFloat(((res[whatToBuy].Price)*howMuchToBuy).toFixed(2));
+ 
+      //check if quantity is sufficient
+      if(res[whatToBuy].StockQuantity >= howMuchToBuy){
+        
+
+        //after purchase, updates quantity in Products
+        connection.query("UPDATE Products SET ? WHERE ?", [
+        {StockQuantity: (res[whatToBuy].StockQuantity - howMuchToBuy)},
+        {ItemID: ans.id}
+        ], function(err, result){
+            if(err) throw err;
+            console.log("Purchased! Your total is $" + grandTotal.toFixed(2) + ". Your item will soon be shipped to you!");
+        });
+ 
+        connection.query("SELECT * FROM Departments", function(err, deptRes){
+          if(err) throw err;
+          var index;
+          for(var i = 0; i < deptRes.length; i++){
+            if(deptRes[i].DepartmentName === res[whatToBuy].DepartmentName){
+              index = i;
+            }
+          }
+         
+          //updates totalSales in departments table
+          connection.query("UPDATE Departments SET ? WHERE ?", [
+          {TotalSales: deptRes[index].TotalSales + grandTotal},
+          {DepartmentName: res[whatToBuy].DepartmentName}
+          ], function(err, deptRes){
+              if(err) throw err;
+              //console.log("Updated Dept Sales.");
+          });
+        });
+ 
+      } else{
+        console.log("Sorry, insufficient quantity");
+      }
+ 
+      reprompt();
+    })
+})
+}
+ 
+//asks if they would like to purchase another item
+function reprompt(){
+  inquirer.prompt([{
+    type: "confirm",
+    name: "reply",
+    message: "Would you like to purchase another item?"
+  }]).then(function(ans){
+    if(ans.reply){
+      start();
+    } else{
+      console.log("See you soon!");
+    }
+  });
 }
 
-//view all inventory
-function viewProducts(){
-	console log('Viewing Products');
-
-	connection.query('SELECT * FROM Products', function(err,res){
-		if(err) throw err;
-		console.log('--------------------------------------------------------')
-
-
-	for(var i = 0; i<res.length;i++){
-		console.log("ID: " + res[i].Item_ID + " | " + "Product: " + res[i].Product_Name + " | " + "Department: " + res[i].Department_Name + " | " + "Price: " + res[i].Price + " | " + "QTY: " + res[i].Stock_Quantity);
-		console.log('-----------------------------------------------------------------------------------------')
-
-	}
-
-	start();
-});
-}
-
-//Views Inventory lower than 5
-
-function viewLowInventory(){
-	console.log('Viewing Low Inventory');
-
-	connection.query('SELECT * FROM Products', function(err, res){
-		if(err) throw err;
-		console.log('______________________________________________________________________________________________');
-
-	}
-}
 
 start();
-});
-}
-
-//displays prompt to add more of an item to the store and asks how much
-
-function addToInventory(){
-	consol.log('Adding to Inventory');
-
-	connection.query('SELECT * FROM Products', function(err, res){
-		if(err) throw err;
-		var itemArray = [];
-
-		//pushes each item into an itemArray
-		for(var i=0; i<res.length; i++){
-			itemArray.push(res[i].Product_Name);
-		}
-
-		inquirer.prompt([{
-			type: "list",
-			name: "product",
-			choices: "itemArray",
-			message: "Which item would you like to add to inventory?"
-
-		}, {
-			type: "input",
-			name: "qty",
-			message: "How much would you like to add?",
-
-			validate: function(value){
-				if(isNaN(value) === false){return true;}
-				else{return false;}
-			}
-}]).then(function(ans) {
-	var currentQTY;
-	for(var i=0; i<res.length; i++){
-		currentQty = res[i].Stock_Quantity;
-	}
-	}
-	connection.query('UPDATE Products Set ? WHERE ?', [
-		{Stock_Quantity: currentQty + parseInt(ans.qty)},
-		{product_name: ans.Product}
-		], function(err, res){
-			if(err) throw err;
-			console.log('The quantity was updated.');
-			start();
-
-		});
-})
-
-			
-		});
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	})
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	} )
-}
